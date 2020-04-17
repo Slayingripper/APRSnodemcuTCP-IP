@@ -81,7 +81,7 @@ void setup() {
   USE_SERIAL.begin(115200); // Скорость порта 
   USE_SERIAL.flush();    
   delay(1000);
-  WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID и пароль точки доступа WIFI
+  WiFiMulti.addAP("INSERT WIFI SSID HERE", "INSERT PASSWORD HERE"); // WIFI CONFIG
   digitalWrite(LED, HIGH);
   Wire.begin(I2C_SDA, I2C_SCL);
   delay(10);
@@ -107,14 +107,14 @@ void loop() {
     HTTPClient http;
     
  
-        const uint16_t port = 14580; // Указываем порт сервера
-        const char * host = "asia.aprs2.net"; // Указываем имя хоста или его IP
-        WiFiClient client; // Включаем режим WI-FI клиента
-        delay(5000); // курим 5 сек
+        const uint16_t port = 14580; // APRS PORT
+        const char * host = "asia.aprs2.net"; // APRS ASIAN SERVER choose the closest one to you 
+        WiFiClient client; // initialise
+        delay(5000); //5 second delay
        
         getWeatherData();
         if (!client.connect(host, port)) {
-           // Если приконектились к серверу то едим дальше иначе ждём ? сек
+           // check for connection 
             
            return;
         }
@@ -209,7 +209,8 @@ void loop() {
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-        client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+temp+"r000p000P000h"+hum+"b"+prs+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
+   //insert call sign 
+        client.print("######-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+temp+"r000p000P000h"+hum+"b"+prs+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
      /*

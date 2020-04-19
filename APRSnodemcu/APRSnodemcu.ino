@@ -1,21 +1,44 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
- 
+
+
+#include "Wire.h"
+#include "LiquidCrystal.h"
+const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
+LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
+
+
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <stdlib_noniso.h>
 #include <Adafruit_BMP085.h>
 #include <DHT.h>
+
+//const int LED = D0;
+ESP8266WiFiMulti WiFiMulti;
+#define USE_SERIAL Serial
+#define SLEEP_DELAY 3000
+
 #include <ArduinoJson.h>
  
-#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature DS18B20(&oneWire);
+//#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
+//OneWire oneWire(ONE_WIRE_BUS);
+//DallasTemperature DS18B20(&oneWire);
 //////////////////////////////////////////
-// set location and API key
+// set location and API key for weather
 String CityID = "146268";
 String APIKEY = "3e4c703c58358f810723b382adf2195c";
+//Set Callsign and APIkey APRS/////
+String Callsign = "5B4ANU-13";
+String APIaprs = "117511.y5T2lut5UFcsj0PY";
+char aprsserver[] = "api.aprs.fi";
+
+String Comment ;
+
+
+///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
 String result;
@@ -30,7 +53,7 @@ float Windspeed;
 String Description;
 //////////////////////////////////////////
 
- 
+/*
 #define I2C_SCL 12      // Barometric Pressure Sensor (BMP085)
 #define I2C_SDA 13      // Barometric Pressure Sensor (BMP085)
 Adafruit_BMP085 bmp;
@@ -39,10 +62,8 @@ Adafruit_BMP085 bmp;
 #define DHTTYPE DHT22  
 //#define DHTTYPE DHT11
  
-#define USE_SERIAL Serial
-#define SLEEP_DELAY 3000
-const int LED = D0;
-ESP8266WiFiMulti WiFiMulti;
+
+
 DHT dht(DHTPIN, DHTTYPE);
 
 float dst,bt,bp,ba;
@@ -75,17 +96,26 @@ char * skipControlChars(char * sLine) {
     
     return sLine;
 }
- 
+ */
 void setup() {
-  pinMode(LED, OUTPUT);
-  USE_SERIAL.begin(115200); // Скорость порта 
+  lcd.begin(16, 2);
+  lcd.print("Starting up");
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(2, 0);
+  lcd.print("5B4ANU");
+  lcd.setCursor(2, 1);
+  lcd.print("APRS WXSMS");
+//  pinMode(LED, OUTPUT);
+  USE_SERIAL.begin(115200); // SET BAUDRATE
   USE_SERIAL.flush();    
   delay(1000);
-  WiFiMulti.addAP("INSERT WIFI SSID HERE", "INSERT PASSWORD HERE"); // WIFI CONFIG
-  digitalWrite(LED, HIGH);
-  Wire.begin(I2C_SDA, I2C_SCL);
+  WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
+ // digitalWrite(LED, HIGH);
+ // Wire.begin(I2C_SDA, I2C_SCL);
   delay(10);
-  digitalWrite(LED, LOW);
+  //digitalWrite(LED, LOW);
+  /*
   if (!bmp.begin()) {
     USE_SERIAL.println("No BMP085 sensor detected!");
     bmp085_present=false;
@@ -93,8 +123,8 @@ void setup() {
  
     dht.begin(); 
 }
- 
- 
+ */
+}
 void closeConnection(HTTPClient * pClientToClose) {
   pClientToClose -> end();
   delay(SLEEP_DELAY);
@@ -108,21 +138,23 @@ void loop() {
     
  
         const uint16_t port = 14580; // APRS PORT
-        const char * host = "asia.aprs2.net"; // APRS ASIAN SERVER choose the closest one to you 
-        WiFiClient client; // initialise
-        delay(5000); //5 second delay
+        const char * host = "asia.aprs2.net"; // APRS SERVER
+        WiFiClient client; //
+        delay(5000); //  5 second delay 
        
         getWeatherData();
+        getAPRSdata();
         if (!client.connect(host, port)) {
-           // check for connection 
+          
             
            return;
         }
  
-        client.println("user 5B4ANU-13 pass 15540 vers ESP8266_SM 0.1 filter m/1");  // Логинемся на сервер user UR5TLZ-13 pass 24610 от aprsdroid
+        client.println("user 5B4ANU-13 pass 15540 vers ESP8266_SM 0.1 filter m/1");  // Insert Callsign and APRS PASSWORD
         delay (250);
- 
- 
+        //THIS SECTION IS IF YOU WANT TO USE SENSORS INSTEAD OF THE WEB API////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        /*
         DS18B20.requestTemperatures();
         dst = DS18B20.getTempCByIndex(0);
         USE_SERIAL.print("Temperature: ");
@@ -165,15 +197,18 @@ void loop() {
           USE_SERIAL.println(h22);
         }
      
-        const int & f = dst; // Температура
-        const int & h = h22; // Влажность
-        const int & p = bp; // Давление
+        const int & f = dst; // Temprature
+        const int & h = h22; // Humidity
+        const int & p = bp; // Pressure
          
-        USE_SERIAL.println(f); // смотрим в порту что получаем
+        USE_SERIAL.println(f); // 
         USE_SERIAL.println(h);
         USE_SERIAL.println(p);
+*/
+        ///////////////////////////////////////////////////////////////////////
         //temprature converter to F
         int t = (Temperature);
+        String cellcy = String(t);
         t = (t*2)+ 32;
         String temp;
         temp = String(t);
@@ -206,13 +241,20 @@ void loop() {
         Serial.println(prs);
         Serial.println(hum);
         Serial.println(temp);
+        Serial.println(Comment);
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-   //insert call sign 
-        client.print("######-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+temp+"r000p000P000h"+hum+"b"+prs+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
+        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+temp+"r000p000P000h"+hum+"b"+prs+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
+        lcd.setCursor(0, 0);
+        lcd.clear();
+        lcd.print("T:"+cellcy+"c  P:"+prs+"b");
+        lcd.setCursor(0, 1);
+        lcd.print("H:"+hum+"%  W:"+windD+"");
+        
+        
      /*
         if (f >= 0)
          {
@@ -225,18 +267,19 @@ void loop() {
         client.print("r...p...P...h"); client.print(h);  
         if (p >= 10000)
         {
-        client.print("b"); client.print(p); client.println("testing the arduino"); // Добиваем коммент
+        client.print("b"); client.print(p); client.println("testing the arduino"); // 
         }
         else
         {
-        client.print("b0"); client.print(p); client.println("testing the arduino"); //Добиваем коммент
+        client.print("b0"); client.print(p); client.println("testing the arduino"); //
         }
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,WIDE1-1:> SmallMeteo to APRS"); // Статус сообщение
+        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,WIDE1-1:> SmallMeteo to APRS"); // 
       
-      */digitalWrite(LED, LOW);
+      */
+      //  digitalWrite(LED, LOW);
         http.end(); //Close connection
-        delay(600000); // Ждём 10 мин перед следующей отправкой пакета 
-        digitalWrite(LED, HIGH);
+        delay(60000); //10 MIN DELAY 
+     //   digitalWrite(LED, HIGH);
         
     }
     
@@ -295,5 +338,48 @@ Humidity = humidity;
 Pressure = pressure;
 WindDirection=windDirection;
 Windspeed = windspeed;
+
+}
+void getAPRSdata(){   //client function to send/receive GET request data.
+  if (client.connect(aprsserver, 443))   
+          {                                         //starts client connection, checks for connection
+          client.println("GET?name=5B4ANU-13&what=loc&apikey=117511.y5T2lut5UFcsj0PY&format=jason");
+         // Serial.println("GET name="+Callsign+"&what=wx&apikey="+APIaprs+"");
+          client.println("Host: api.aprs.fi/api/");
+          client.println("User-Agent: NodeMcuAPRS/1.0");
+          client.println("Connection: close");
+          client.println();
+          } 
+  else {
+         Serial.println("connection failed");        //error message if no client connect
+          Serial.println();
+       }
+
+  while(client.connected() && !client.available()) 
+  delay(1);                                          //waits for data
+  while (client.connected() || client.available())    
+       {                                             //connected or data available
+         char c = client.read();                     //gets byte from ethernet buffer
+         result = result+c;
+       }
+
+client.stop();                                      //stop client
+result.replace('[', ' ');
+result.replace(']', ' ');
+Serial.println(result);
+char jsonArray [result.length()+1];
+result.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[result.length() + 1] = '\0';
+StaticJsonBuffer<1024> json_buf;
+JsonObject &root = json_buf.parseObject(jsonArray);
+
+if (!root.success())
+  {
+    Serial.println("parseObject() failed");
+  }
+
+String Name = root["name"];
+String comment = root["entries"]["comment"];
+Comment = comment;
 
 }

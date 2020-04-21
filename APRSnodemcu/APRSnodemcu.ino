@@ -1,20 +1,25 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
-
-
+//#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include "Wire.h"
 #include "LiquidCrystal.h"
 const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
+int count = 0 ;
+///////////////////////////////////////////////////
 
 
+
+
+///////////////////////////////////////////////////
 
 #include <OneWire.h>
-#include <DallasTemperature.h>
-#include <stdlib_noniso.h>
-#include <Adafruit_BMP085.h>
-#include <DHT.h>
+//#include <DallasTemperature.h>
+//#include <stdlib_noniso.h>
+//#include <Adafruit_BMP085.h>
+//#include <DHT.h>
 
 //const int LED = D0;
 ESP8266WiFiMulti WiFiMulti;
@@ -22,7 +27,7 @@ ESP8266WiFiMulti WiFiMulti;
 #define SLEEP_DELAY 3000
 
 #include <ArduinoJson.h>
- 
+
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
 //DallasTemperature DS18B20(&oneWire);
@@ -34,22 +39,25 @@ String APIKEY = "3e4c703c58358f810723b382adf2195c";
 String Callsign = "5B4ANU-13";
 String APIaprs = "117511.y5T2lut5UFcsj0PY";
 char aprsserver[] = "api.aprs.fi";
-
+String Message;
+float unread;
 String Comment ;
-
-
+String SourceID;
+///////////////////////////////////////////////////////
+/////////////DMR//////////////////////////////////////
+//const char DMRAPI = "Yc$hW60YhjAZi.r1MnynE@ee0CSkqPPl.MCVTDR8Wo4cnwd6UMuvLIJMiz3IlS1jCEbte@B7oGjM9xT0gkw@0dLjMO.4E0odEzGTzf$YVhH1Px23Sy2TMO9vz8Ab8YpN";
+//char dmrserver[] = "hose.brandmeister.network";
+//char newsserver[] = "newsapi.org";
 ///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
-String result;
-String weatherDescription ="";
-String weatherLocation = "";
-String Country;
-float Temperature;
-float Humidity;
-float Pressure;
-float WindDirection;
-float Windspeed;
+String result,kaka;
+byte length;
+byte Temperature;
+byte Humidity;
+int Pressure;
+int WindDirection;
+byte Windspeed;
 String Description;
 //////////////////////////////////////////
 
@@ -100,7 +108,7 @@ char * skipControlChars(char * sLine) {
 void setup() {
   lcd.begin(16, 2);
   lcd.print("Starting up");
-  delay(5000);
+  delay(3000);
   lcd.clear();
   lcd.setCursor(2, 0);
   lcd.print("5B4ANU");
@@ -141,8 +149,8 @@ void loop() {
         const char * host = "asia.aprs2.net"; // APRS SERVER
         WiFiClient client; //
         delay(5000); //  5 second delay 
-       
         getWeatherData();
+        delay(2000);
         getAPRSdata();
         if (!client.connect(host, port)) {
           
@@ -207,28 +215,24 @@ void loop() {
 */
         ///////////////////////////////////////////////////////////////////////
         //temprature converter to F
-        int t = (Temperature);
-        String cellcy = String(t);
-        t = (t*2)+ 32;
-        String temp;
-        temp = String(t);
+        String temp = String(Temperature);
+        Temperature = (Temperature*2)+ 32;
+        //String temp;
+       // temp = String(Temperature);
 
         // Humidity
-        int hu = (Humidity);
+        byte hu = (Humidity);
         String hum ;
         hum=String(hu);
 
-        //Pressure
-        int pr = (Pressure);
-        String prs ;
-        prs = String(pr);
+       
 
         // Winddirection
         int wnd = (WindDirection);
         String windD; 
         windD = String(wnd);
         //Windspeed
-        unsigned int wnds = 0;
+        byte wnds = 0;
         wnds = (Windspeed);
         //String windS; 
         //windS = String(wnds);
@@ -236,24 +240,55 @@ void loop() {
         //Description
         Serial.println(Description);
         //checker
+        /*
         Serial.println(windS);
         Serial.println(windD);
-        Serial.println(prs);
-        Serial.println(hum);
-        Serial.println(temp);
+        Serial.println(Pressure);
+        Serial.println(Humidity);
+        Serial.println(Temperature);
         Serial.println(Comment);
+        Serial.println(SourceID);
+        Serial.println(Message);
+        Serial.print(unread);
+        */
+        int dat = (unread);
+        String dis; 
+        dis = String(dat);
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+temp+"r000p000P000h"+hum+"b"+prs+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
+        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
-        lcd.setCursor(0, 0);
+  
+        while(count < 60){
         lcd.clear();
-        lcd.print("T:"+cellcy+"c  P:"+prs+"b");
+        lcd.setCursor(0, 0);
+        lcd.print("T:"+temp+"c  P:"+Pressure+"b");
         lcd.setCursor(0, 1);
-        lcd.print("H:"+hum+"%  W:"+windD+"");
-        
+        lcd.print("H:"+hum+"%  W:"+windD+""+(char)223+"");
+        delay (5000);
+        lcd.clear();
+        lcd.print("Messages   "+dis+"");
+        delay (2000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("From:"+SourceID+"");
+        lcd.setCursor(0, 1);
+        lcd.print(""+Message+"");
+        length = Message.length();
+        delay(2000);
+        if( length >= 16){ 
+        for (int positionCounter = 0; positionCounter < length; positionCounter++) {
+           // scroll one position left:
+             lcd.scrollDisplayLeft();
+            // wait a bit:
+             delay(1500);
+        }
+        }
+        delay(4000);
+        count++;
+        }
         
      /*
         if (f >= 0)
@@ -278,20 +313,24 @@ void loop() {
       */
       //  digitalWrite(LED, LOW);
         http.end(); //Close connection
-        delay(60000); //10 MIN DELAY 
+    
+        delay(6000); //10 MIN DELAY 
      //   digitalWrite(LED, HIGH);
         
     }
-    
 }
+
+
 void getWeatherData(){   //client function to send/receive GET request data.
   if (client.connect(servername, 80))   
           {                                         //starts client connection, checks for connection
           client.println("GET /data/2.5/weather?id="+CityID+"&units=metric&APPID="+APIKEY);
           client.println("Host: api.openweathermap.org");
-          client.println("User-Agent: ArduinoWiFi/1.1");
+          client.println("User-Agent: self.user_agent");
           client.println("Connection: close");
           client.println();
+          
+         
           } 
   else {
          Serial.println("connection failed");        //error message if no client connect
@@ -313,7 +352,8 @@ Serial.println(result);
 char jsonArray [result.length()+1];
 result.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[result.length() + 1] = '\0';
-StaticJsonBuffer<1024> json_buf;
+StaticJsonBuffer<768>json_buf;
+//DynamicJsonBuffer json_buf;
 JsonObject &root = json_buf.parseObject(jsonArray);
 
 if (!root.success())
@@ -321,17 +361,23 @@ if (!root.success())
     Serial.println("parseObject() failed");
   }
 
-String location = root["name"];
-String country = root["sys"]["country"];
-float temperature = root["main"]["temp"];
-float humidity = root["main"]["humidity"];
-String weather = root["weather"]["main"];
-float pressure = root["main"]["pressure"];
-float windspeed = root["wind"]["speed"];
-float windDirection = root["wind"] ["deg"];
+
+
+/*
+if (!root.success())
+  {
+    Serial.println("parseObject() failed");
+  }
+*/
+
+
+byte temperature = root["main"]["temp"];
+byte humidity = root["main"]["humidity"];
+int pressure = root["main"]["pressure"];
+byte windspeed = root["wind"]["speed"];
+byte windDirection = root["wind"] ["deg"];
 String description = root["weather"]["description"];
-weatherLocation = location;
-Country = country;
+
 Description = description;
 Temperature = temperature;
 Humidity = humidity;
@@ -340,13 +386,20 @@ WindDirection=windDirection;
 Windspeed = windspeed;
 
 }
+
 void getAPRSdata(){   //client function to send/receive GET request data.
-  if (client.connect(aprsserver, 443))   
-          {                                         //starts client connection, checks for connection
-          client.println("GET?name=5B4ANU-13&what=loc&apikey=117511.y5T2lut5UFcsj0PY&format=jason");
-         // Serial.println("GET name="+Callsign+"&what=wx&apikey="+APIaprs+"");
-          client.println("Host: api.aprs.fi/api/");
-          client.println("User-Agent: NodeMcuAPRS/1.0");
+
+  if (client.connect(aprsserver, 80 ))   
+          {      
+            //starts client connection, checks for connection
+        client.println("GET /api/get?what=msg&dst=5B4ANU-13&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
+    //     client.println("GET /api/get?name=5B4ANU-13&what=loc&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
+        // client.println("GET /api/active/?limit=10&region=2&country=280 HTTP/1.0");
+         //client.println("GET /v2/top-headlines?sources=bbc-news&apiKey=09595a6764954900b3a241f586f76630 HTTP/1.1");
+        //  client.println("Host: api.aprs.fi");
+         
+      //    client.println("Host: hose.brandmeister.network");
+          client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
           client.println("Connection: close");
           client.println();
           } 
@@ -357,29 +410,44 @@ void getAPRSdata(){   //client function to send/receive GET request data.
 
   while(client.connected() && !client.available()) 
   delay(1);                                          //waits for data
+  char endOfHeaders[] = "\r\n\r\n";
+ client.setTimeout(10000);
+if (!client.find(endOfHeaders)) {
+  Serial.println(F("Invalid response"));
+
+    return;
+}
   while (client.connected() || client.available())    
        {                                             //connected or data available
-         char c = client.read();                     //gets byte from ethernet buffer
-         result = result+c;
+         char d = client.read();                     //gets byte from ethernet buffer
+         kaka = kaka+d;
        }
+       
 
 client.stop();                                      //stop client
-result.replace('[', ' ');
-result.replace(']', ' ');
-Serial.println(result);
-char jsonArray [result.length()+1];
-result.toCharArray(jsonArray,sizeof(jsonArray));
-jsonArray[result.length() + 1] = '\0';
-StaticJsonBuffer<1024> json_buf;
-JsonObject &root = json_buf.parseObject(jsonArray);
+//kaka.replace('[', ' ');
+//kaka.replace(']', ' ');
+Serial.println(kaka);
+char jsonArray [kaka.length()+1];
+kaka.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[kaka.length()+1] = '\0';
+StaticJsonBuffer<2048>json_buf;
+//DynamicJsonBuffer  json_buf;
+JsonObject& parsed = json_buf.parseObject(jsonArray);
 
-if (!root.success())
+
+if (!parsed.success())
   {
     Serial.println("parseObject() failed");
+    return;
   }
 
-String Name = root["name"];
-String comment = root["entries"]["comment"];
-Comment = comment;
+byte Found = parsed["found"];
+String sourceID = parsed["entries"][0]["srccall"];
+String message = parsed["entries"][0]["message"];
+
+unread = Found;
+Message = message;
+SourceID = sourceID;
 
 }

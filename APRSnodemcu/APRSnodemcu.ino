@@ -21,7 +21,8 @@ ESP8266WiFiMulti WiFiMulti;
 #define SLEEP_DELAY 3000
 #include <ArduinoJson.h>
 char airindexs[] = "api.waqi.info";
-int STATCY;
+String STATCY,Airquality,thelocationx,thelocationy,thelocation;
+
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
 //DallasTemperature DS18B20(&oneWire);
@@ -52,6 +53,7 @@ WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
 String result,kaka,pisha;
 byte length;
+byte thislength;
 byte Temperature;
 byte Humidity;
 int Pressure;
@@ -148,21 +150,21 @@ void loop() {
         const uint16_t port = 14580; // APRS PORT
         const char * host = "asia.aprs2.net"; // APRS SERVER
         WiFiClient client; //
-        delay(3000); //  5 second delay 
+        delay(1000); //  5 second delay 
         getWeatherData();
         delay(1000);
         getAPRSdata();
         delay(1000);
-        getplaneinfo();
+        //getplaneinfo();
         delay(1000);
-      //  airindex();
+        airindex();
         if (!client.connect(host, port)) {
           
             
            return;
         }
  
-        client.println("user 5B4ANU-13 pass 15540 vers ESP8266_SM 0.1 filter m/1");  // Insert Callsign and APRS PASSWORD
+        client.println("user 5B4ANU pass 15540 vers ESP8266_SM 0.1 filter m/1");  // Insert Callsign and APRS PASSWORD
         delay (250);
         //THIS SECTION IS IF YOU WANT TO USE SENSORS INSTEAD OF THE WEB API////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -274,9 +276,11 @@ void loop() {
         Serial.println(Message);
         Serial.print(unread);
         */
-        Serial.print(STATCY);
-        Serial.print(STATCY);
-        Serial.print(STATCY);
+        Serial.print(STATCY);     
+        Serial.print(Airquality);
+        Serial.print(thelocationx);
+        Serial.print(thelocationy);
+        Serial.print(Message);
         int dat = (unread);
         String dis; 
         dis = String(dat);
@@ -284,9 +288,16 @@ void loop() {
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
         client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
+        
+        delay(3000);
+        client.flush();
+       // client.print("5B4ANU-12>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
+
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
-  
+       // 35.1520595,33.3476924
+        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,,T2ITALY:=3510.10N/03320.50E_""Nicosia Airquality Index:"+Airquality+"");
+        
         while(count < 10){
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -312,8 +323,26 @@ void loop() {
              delay(1500);
         }
         }
-        delay(2000);
+        lcd.clear();
+        
+        lcd.setCursor(0, 0);
+        lcd.print("Nicosia quality");
+//        thislength = STATCY.length();
+//        if( thislength >= 16){ 
+//        for (int positionCounter = 0; positionCounter < thislength; positionCounter++) {
+//           // scroll one position left:
+//             lcd.scrollDisplayLeft();
+//            // wait a bit:
+//             delay(1500);
+//        }
+ //       }
+         lcd.setCursor(0, 1);
+         lcd.print("Index: "+Airquality+"");
+        delay(5000);
+       
         count++;
+        
+
         }
         
      /*
@@ -332,14 +361,14 @@ void loop() {
         }
         else
         {
-        client.print("b0"); client.print(p); client.println("testing the arduino"); //
+        client.print("b0"); client.print(p); client.println("testing the arduino"); 
         }
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,WIDE1-1:> SmallMeteo to APRS"); // 
+         // 
       
       */
       //  digitalWrite(LED, LOW);
         http.end(); //Close connection
-    
+        client.flush();
         delay(6000); //10 MIN DELAY 
      //   digitalWrite(LED, HIGH);
     }
@@ -525,10 +554,10 @@ if (!picked.success())
   }
 
 byte Found = picked["states"];
-String Callsign = picked["states"][0]["1"];
-String Posy = picked["states"][0]["5"];
-String Posx = picked["states"][0]["6"];
-String Origincountry = picked["states"][0]["2"];
+String Callsign = picked["states"][0][1];
+String Posy = picked["states"][0][5];
+String Posx = picked["states"][0][6];
+String Origincountry = picked["states"][0][2];
 
 callsign = Callsign;
 posy = Posy;
@@ -540,7 +569,7 @@ void airindex(){   //client function to send/receive GET request data.
 
   if (client.connect(airindexs, 80 ))   {
 
-          client.println("GET /feed/cyprus/?token=65174f79ef3f8ffe9d5af54f4c1ece468a59b6f0 HTTP/1.0");
+          client.println("GET /feed/Nicosia/?token=65174f79ef3f8ffe9d5af54f4c1ece468a59b6f0 HTTP/1.0");
           client.println("Host: api.waqi.info");
           client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
           client.println("Connection: close");
@@ -584,8 +613,13 @@ if (!picked.success())
     Serial.println("parseObject() failed 2");
     return;
   }
-
-int Statusindex = picked["status"];
-
+//35.1520595,33.3476924
+String Statusindex = picked["data"]["city"]["name"];
+String aqi = picked["data"]["aqi"];
+String location = picked["data"]["city"]["geo"];
+Airquality = aqi;
+thelocation = location;
+//thelocationx = getValue(location,',');
+//thelocationy = getValue(location,',');
 STATCY = Statusindex;
 }

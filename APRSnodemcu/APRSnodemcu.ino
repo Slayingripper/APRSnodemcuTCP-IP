@@ -9,25 +9,19 @@ const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
 int count = 0 ;
 ///////////////////////////////////////////////////
-
-
-
-
-///////////////////////////////////////////////////
-
-#include <OneWire.h>
 //#include <DallasTemperature.h>
 //#include <stdlib_noniso.h>
 //#include <Adafruit_BMP085.h>
 //#include <DHT.h>
-
+///////////////////////////////////////////////////
+#include <OneWire.h>
 //const int LED = D0;
 ESP8266WiFiMulti WiFiMulti;
 #define USE_SERIAL Serial
 #define SLEEP_DELAY 3000
-
 #include <ArduinoJson.h>
-
+char airindexs[] = "api.waqi.info";
+int STATCY;
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
 //DallasTemperature DS18B20(&oneWire);
@@ -44,6 +38,11 @@ float unread;
 String Comment ;
 String SourceID;
 ///////////////////////////////////////////////////////
+/////planes///////
+///https://opensky-network.org/api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455
+char planeserver[]= "opensky-network.org";
+String callsign,posx,posy,origincountry;
+
 /////////////DMR//////////////////////////////////////
 //const char DMRAPI = "Yc$hW60YhjAZi.r1MnynE@ee0CSkqPPl.MCVTDR8Wo4cnwd6UMuvLIJMiz3IlS1jCEbte@B7oGjM9xT0gkw@0dLjMO.4E0odEzGTzf$YVhH1Px23Sy2TMO9vz8Ab8YpN";
 //char dmrserver[] = "hose.brandmeister.network";
@@ -51,7 +50,7 @@ String SourceID;
 ///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
-String result,kaka;
+String result,kaka,pisha;
 byte length;
 byte Temperature;
 byte Humidity;
@@ -108,7 +107,7 @@ char * skipControlChars(char * sLine) {
 void setup() {
   lcd.begin(16, 2);
   lcd.print("Starting up");
-  delay(3000);
+  delay(1000);
   lcd.clear();
   lcd.setCursor(2, 0);
   lcd.print("5B4ANU");
@@ -142,16 +141,21 @@ void closeConnection(HTTPClient * pClientToClose) {
  
 void loop() {
   if((WiFiMulti.run() == WL_CONNECTED)) {
+
     HTTPClient http;
-    
+   
  
         const uint16_t port = 14580; // APRS PORT
         const char * host = "asia.aprs2.net"; // APRS SERVER
         WiFiClient client; //
-        delay(5000); //  5 second delay 
+        delay(3000); //  5 second delay 
         getWeatherData();
-        delay(2000);
+        delay(1000);
         getAPRSdata();
+        delay(1000);
+        getplaneinfo();
+        delay(1000);
+      //  airindex();
         if (!client.connect(host, port)) {
           
             
@@ -229,8 +233,20 @@ void loop() {
 
         // Winddirection
         int wnd = (WindDirection);
+       
         String windD; 
-        windD = String(wnd);
+        if( 10 <= wnd && wnd <= 99){
+          windD = String(wnd);
+          windD = "0" + windD; 
+        }
+        else if (10 > wnd){
+          windD = String(wnd);
+          windD = "00" + windD; 
+        }
+        else{
+          windD = String(wnd);
+        }
+        
         //Windspeed
         byte wnds = 0;
         wnds = (Windspeed);
@@ -239,8 +255,15 @@ void loop() {
         String windS = String( printf("%02d", wnds));
         //Description
         Serial.println(Description);
+        Serial.println(windD);
         //checker
+        Serial.println(origincountry);
+        Serial.println(posx);
+        Serial.println(posy);
+
+
         /*
+         
         Serial.println(windS);
         Serial.println(windD);
         Serial.println(Pressure);
@@ -251,6 +274,9 @@ void loop() {
         Serial.println(Message);
         Serial.print(unread);
         */
+        Serial.print(STATCY);
+        Serial.print(STATCY);
+        Serial.print(STATCY);
         int dat = (unread);
         String dis; 
         dis = String(dat);
@@ -261,7 +287,7 @@ void loop() {
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
   
-        while(count < 60){
+        while(count < 10){
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("T:"+temp+"c  P:"+Pressure+"b");
@@ -286,7 +312,7 @@ void loop() {
              delay(1500);
         }
         }
-        delay(4000);
+        delay(2000);
         count++;
         }
         
@@ -316,7 +342,6 @@ void loop() {
     
         delay(6000); //10 MIN DELAY 
      //   digitalWrite(LED, HIGH);
-        
     }
 }
 
@@ -369,7 +394,6 @@ if (!root.success())
     Serial.println("parseObject() failed");
   }
 */
-
 
 byte temperature = root["main"]["temp"];
 byte humidity = root["main"]["humidity"];
@@ -450,4 +474,118 @@ unread = Found;
 Message = message;
 SourceID = sourceID;
 
+}
+void getplaneinfo(){   //client function to send/receive GET request data.
+
+  if (client.connect(planeserver, 80 ))   {
+
+          client.println("GET /api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455 HTTP/1.1");
+          client.println("Host: opensky-network.org");
+          client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
+          client.println("Connection: close");
+          client.println();
+          } 
+  else {
+         Serial.println("connection failed");        //error message if no client connect
+          Serial.println();
+       }
+
+  while(client.connected() && !client.available()) 
+  delay(1);                                          //waits for data
+  char endOfHeaders[] = "\r\n\r\n";
+ client.setTimeout(10000);
+if (!client.find(endOfHeaders)) {
+  Serial.println(F("Invalid response"));
+
+    return;
+}
+  while (client.connected() || client.available())    
+       {                                             //connected or data available
+         char e = client.read();                     //gets byte from ethernet buffer
+         pisha = pisha+e;
+       }
+       
+
+client.stop();                                      //stop client
+//pisha.replace('[', ' ');
+//pisha.replace(']', ' ');
+Serial.println(pisha);
+char jsonArray [pisha.length()+1];
+pisha.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[pisha.length()+1] = '\0';
+StaticJsonBuffer<1500>json_buf;
+//DynamicJsonBuffer  json_buf;
+JsonObject& picked = json_buf.parseObject(jsonArray);
+
+
+if (!picked.success())
+  {
+    Serial.println("parseObject() failed 2");
+    return;
+  }
+
+byte Found = picked["states"];
+String Callsign = picked["states"][0]["1"];
+String Posy = picked["states"][0]["5"];
+String Posx = picked["states"][0]["6"];
+String Origincountry = picked["states"][0]["2"];
+
+callsign = Callsign;
+posy = Posy;
+posx = Posx;
+origincountry = Origincountry;
+}
+
+void airindex(){   //client function to send/receive GET request data.
+
+  if (client.connect(airindexs, 80 ))   {
+
+          client.println("GET /feed/cyprus/?token=65174f79ef3f8ffe9d5af54f4c1ece468a59b6f0 HTTP/1.0");
+          client.println("Host: api.waqi.info");
+          client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
+          client.println("Connection: close");
+          client.println();
+          } 
+  else {
+         Serial.println("connection failed");        //error message if no client connect
+          Serial.println();
+       }
+
+  while(client.connected() && !client.available()) 
+  delay(1);                                          //waits for data
+  char endOfHeaders[] = "\r\n\r\n";
+ client.setTimeout(10000);
+if (!client.find(endOfHeaders)) {
+  Serial.println(F("Invalid response"));
+
+    return;
+}
+  while (client.connected() || client.available())    
+       {                                             //connected or data available
+         char e = client.read();                     //gets byte from ethernet buffer
+         pisha = pisha+e;
+       }
+       
+
+client.stop();                                      //stop client
+//pisha.replace('[', ' ');
+//pisha.replace(']', ' ');
+Serial.println(pisha);
+char jsonArray [pisha.length()+1];
+pisha.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[pisha.length()+1] = '\0';
+StaticJsonBuffer<1500>json_buf;
+//DynamicJsonBuffer  json_buf;
+JsonObject& picked = json_buf.parseObject(jsonArray);
+
+
+if (!picked.success())
+  {
+    Serial.println("parseObject() failed 2");
+    return;
+  }
+
+int Statusindex = picked["status"];
+
+STATCY = Statusindex;
 }

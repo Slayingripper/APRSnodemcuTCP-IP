@@ -21,7 +21,7 @@ ESP8266WiFiMulti WiFiMulti;
 #define SLEEP_DELAY 3000
 #include <ArduinoJson.h>
 char airindexs[] = "api.waqi.info";
-String STATCY,Airquality,thelocationx,thelocationy,thelocation;
+String STATCY,Airquality,thelocationx,thelocationy,thelocation,Nichumid;
 
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
@@ -296,7 +296,7 @@ void loop() {
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
        // 35.1520595,33.3476924
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,,T2ITALY:=3510.10N/03320.50E_""Nicosia Airquality Index:"+Airquality+"");
+        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Nichumid+"b"+Pressure+"1L000"" The AirQuality index now is "+Airquality+"");
         
         while(count < 10){
         lcd.clear();
@@ -617,6 +617,8 @@ if (!picked.success())
 String Statusindex = picked["data"]["city"]["name"];
 String aqi = picked["data"]["aqi"];
 String location = picked["data"]["city"]["geo"];
+String humidity21 = picked["data"]["city"]["geo"]["h"][0];
+Nichumid =humidity21;
 Airquality = aqi;
 thelocation = location;
 //thelocationx = getValue(location,',');

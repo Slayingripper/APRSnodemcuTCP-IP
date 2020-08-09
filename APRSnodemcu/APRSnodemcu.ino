@@ -1,3 +1,4 @@
+#include <TimeLib.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
@@ -21,7 +22,7 @@ ESP8266WiFiMulti WiFiMulti;
 #define SLEEP_DELAY 3000
 #include <ArduinoJson.h>
 char airindexs[] = "api.waqi.info";
-String STATCY,Airquality,thelocationx,thelocationy,thelocation,Nichumid;
+String STATCY,Airquality,thelocationx,thelocationy,thelocation,Nichumid,Nicwind,Nicpressure,Nictemp;
 
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
@@ -39,6 +40,11 @@ float unread;
 String Comment ;
 String SourceID;
 ///////////////////////////////////////////////////////
+///////////////SATELITE///////////////////////////////
+//https://www.n2yo.com/rest/v1/satellite/radiopasses/25544/35.0191/33.74057/0/2/40/&apiKey=DWNZB6-Q6B5GA-M7ND55-4ISG
+char satteliteserver[] = "www.n2yo.com";
+String Startaz,Endaz,Startutc,Endutc,Satname;
+
 /////planes///////
 ///https://opensky-network.org/api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455
 char planeserver[]= "opensky-network.org";
@@ -51,7 +57,7 @@ String callsign,posx,posy,origincountry;
 ///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
-String result,kaka,pisha;
+String result,kaka,pisha,louvin;
 byte length;
 byte thislength;
 byte Temperature;
@@ -155,9 +161,11 @@ void loop() {
         delay(1000);
         getAPRSdata();
         delay(1000);
+        airindex();
         //getplaneinfo();
         delay(1000);
-        airindex();
+        getsatdata();
+        delay(1000);
         if (!client.connect(host, port)) {
           
             
@@ -256,13 +264,21 @@ void loop() {
         //windS = String(wnds);
         String windS = String( printf("%02d", wnds));
         //Description
+        Serial.print(Airquality);
+        Serial.print(thelocationx);
+        Serial.print(thelocationy);
+        Serial.print(Message);
+        Serial.print(Satname);
+        Serial.print(Endaz);
         Serial.println(Description);
         Serial.println(windD);
         //checker
+        int t;
         Serial.println(origincountry);
         Serial.println(posx);
         Serial.println(posy);
-
+        
+        Serial.println(now());
 
         /*
          
@@ -277,10 +293,7 @@ void loop() {
         Serial.print(unread);
         */
         Serial.print(STATCY);     
-        Serial.print(Airquality);
-        Serial.print(thelocationx);
-        Serial.print(thelocationy);
-        Serial.print(Message);
+     
         int dat = (unread);
         String dis; 
         dis = String(dat);
@@ -296,7 +309,7 @@ void loop() {
         //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
        // 35.1520595,33.3476924
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Nichumid+"b"+Pressure+"1L000"" The AirQuality index now is "+Airquality+"");
+        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000"" The AirQuality index now is "+Airquality+"");
         
         while(count < 10){
         lcd.clear();
@@ -305,6 +318,24 @@ void loop() {
         lcd.setCursor(0, 1);
         lcd.print("H:"+hum+"%  W:"+windD+""+(char)223+"");
         delay (5000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Nicosia quality");
+         lcd.setCursor(0, 1);
+         lcd.print("Index:"+Airquality+"");
+         delay(5000);
+         lcd.clear();
+         lcd.setCursor(0, 0);
+         lcd.print("W:"+Nicwind+"m/s""  T:"+Nictemp+"c");
+         lcd.setCursor(0, 1);
+         lcd.print("P:"+Nicpressure+"b""   H:"+Nichumid+"%");
+        delay(5000);
+         lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(""+Satname+"");
+        lcd.setCursor(0, 1);
+        lcd.print("S:"+Startaz+""+(char)223+" E:"+Endaz+""+(char)223+"");
+        delay(5000);
         lcd.clear();
         lcd.print("Messages   "+dis+"");
         delay (2000);
@@ -322,53 +353,19 @@ void loop() {
             // wait a bit:
              delay(1500);
         }
+     
         }
-        lcd.clear();
-        
-        lcd.setCursor(0, 0);
-        lcd.print("Nicosia quality");
-//        thislength = STATCY.length();
-//        if( thislength >= 16){ 
-//        for (int positionCounter = 0; positionCounter < thislength; positionCounter++) {
-//           // scroll one position left:
-//             lcd.scrollDisplayLeft();
-//            // wait a bit:
-//             delay(1500);
-//        }
- //       }
-         lcd.setCursor(0, 1);
-         lcd.print("Index: "+Airquality+"");
-        delay(5000);
        
         count++;
-        
-
+       
+        client.flush();
+        Serial.flush();
         }
         
-     /*
-        if (f >= 0)
-         {
-         client.print("t0"); client.print(f);
-         }
-          else
-          {
-        client.print("t"); client.print(f);
-        }
-        client.print("r...p...P...h"); client.print(h);  
-        if (p >= 10000)
-        {
-        client.print("b"); client.print(p); client.println("testing the arduino"); // 
-        }
-        else
-        {
-        client.print("b0"); client.print(p); client.println("testing the arduino"); 
-        }
-         // 
-      
-      */
       //  digitalWrite(LED, LOW);
         http.end(); //Close connection
-        client.flush();
+        
+        
         delay(6000); //10 MIN DELAY 
      //   digitalWrite(LED, HIGH);
     }
@@ -409,21 +406,10 @@ jsonArray[result.length() + 1] = '\0';
 StaticJsonBuffer<768>json_buf;
 //DynamicJsonBuffer json_buf;
 JsonObject &root = json_buf.parseObject(jsonArray);
-
 if (!root.success())
   {
     Serial.println("parseObject() failed");
   }
-
-
-
-/*
-if (!root.success())
-  {
-    Serial.println("parseObject() failed");
-  }
-*/
-
 byte temperature = root["main"]["temp"];
 byte humidity = root["main"]["humidity"];
 int pressure = root["main"]["pressure"];
@@ -617,11 +603,81 @@ if (!picked.success())
 String Statusindex = picked["data"]["city"]["name"];
 String aqi = picked["data"]["aqi"];
 String location = picked["data"]["city"]["geo"];
-String humidity21 = picked["data"]["city"]["geo"]["h"][0];
+String humidity21 = picked["data"]["iaqi"]["h"]["v"];
+String nicpressure = picked["data"]["iaqi"]["p"]["v"];
+String nicwind = picked["data"]["iaqi"]["w"]["v"];
+String nictemp = picked["data"]["iaqi"]["t"]["v"];
+Nicwind = nicwind;
+Nictemp = nictemp;
+Nicpressure = nicpressure;
 Nichumid =humidity21;
 Airquality = aqi;
 thelocation = location;
 //thelocationx = getValue(location,',');
 //thelocationy = getValue(location,',');
 STATCY = Statusindex;
+}
+
+void getsatdata(){   //client function to send/receive GET request data.
+  if (client.connect(satteliteserver, 80))   
+          {                                         //starts client connection, checks for connection
+          client.println("GET /rest/v1/satellite/radiopasses/25544/35.0191/33.74057/0/1/40/&apiKey=DWNZB6-Q6B5GA-M7ND55-4ISG HTTP/1.0");
+          client.println("Host: www.n2yo.com");
+          client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
+          client.println("Connection: close");
+          client.println();     
+          } 
+  else {
+         Serial.println("connection failed");        //error message if no client connect
+         Serial.println();
+       }
+  while(client.connected() && !client.available())
+  delay(100);                                          //waits for data
+  char endOfHeaders[] = "\r\n\r\n";
+ client.setTimeout(10000);
+if (!client.find(endOfHeaders)) {
+  Serial.println(F("Invalid response"));
+
+    return;
+} 
+                                         //waits for data
+  while (client.connected() || client.available())    
+       {                                             //connected or data available
+         char x = client.read();                     //gets byte from ethernet buffer
+         louvin = louvin+x;
+       }
+
+client.stop();                                      //stop client
+//louvin.replace('[', ' ');
+//louvin.replace(']', ' ');
+Serial.println(louvin);
+char jsonArray [louvin.length()+1];
+louvin.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[louvin.length() + 1] = '\0';
+StaticJsonBuffer<1024>json_buf;
+//DynamicJsonBuffer json_buf;
+JsonObject &rootbeer = json_buf.parseObject(jsonArray);
+
+if (!rootbeer.success())
+  {
+    Serial.println("parseObject() failed");
+  }
+/*
+if (!root.success())
+  {
+    Serial.println("parseObject() failed");
+  }
+*/
+
+String satname = rootbeer["info"]["satname"];
+String startaz = rootbeer["passes"][0]["startAz"];
+String endaz = rootbeer["passes"][0]["endAz"];
+String startutc = rootbeer["passes"][0]["startUTC"];
+String endutc = rootbeer["passes"][0]["endUTC"];
+
+Startaz =startaz;
+Endaz = endaz;
+Startutc= startutc;
+Endutc = endutc;
+Satname = satname;
 }

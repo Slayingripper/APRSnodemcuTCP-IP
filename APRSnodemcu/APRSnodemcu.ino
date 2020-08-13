@@ -1,6 +1,7 @@
 #include <TimeLib.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
+#include <ArduinoJson.h>
 #include <ESP8266HTTPClient.h>
 //#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
@@ -9,6 +10,8 @@
 const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
 int count = 0 ;
+char* c_time_string;
+char* d_time_string;
 ///////////////////////////////////////////////////
 //#include <DallasTemperature.h>
 //#include <stdlib_noniso.h>
@@ -20,10 +23,8 @@ int count = 0 ;
 ESP8266WiFiMulti WiFiMulti;
 #define USE_SERIAL Serial
 #define SLEEP_DELAY 3000
-#include <ArduinoJson.h>
 char airindexs[] = "api.waqi.info";
 String STATCY,Airquality,thelocationx,thelocationy,thelocation,Nichumid,Nicwind,Nicpressure,Nictemp;
-
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
 //DallasTemperature DS18B20(&oneWire);
@@ -43,13 +44,12 @@ String SourceID;
 ///////////////SATELITE///////////////////////////////
 //https://www.n2yo.com/rest/v1/satellite/radiopasses/25544/35.0191/33.74057/0/2/40/&apiKey=DWNZB6-Q6B5GA-M7ND55-4ISG
 char satteliteserver[] = "www.n2yo.com";
-String Startaz,Endaz,Startutc,Endutc,Satname;
-
+String Startaz,Endaz,Satname;
+time_t unixtime,unixtimend;
 /////planes///////
 ///https://opensky-network.org/api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455
 char planeserver[]= "opensky-network.org";
 String callsign,posx,posy,origincountry;
-
 /////////////DMR//////////////////////////////////////
 //const char DMRAPI = "Yc$hW60YhjAZi.r1MnynE@ee0CSkqPPl.MCVTDR8Wo4cnwd6UMuvLIJMiz3IlS1jCEbte@B7oGjM9xT0gkw@0dLjMO.4E0odEzGTzf$YVhH1Px23Sy2TMO9vz8Ab8YpN";
 //char dmrserver[] = "hose.brandmeister.network";
@@ -112,7 +112,10 @@ char * skipControlChars(char * sLine) {
     return sLine;
 }
  */
+ // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
+
 void setup() {
+  //WiFiManager Wifimanager;
   lcd.begin(16, 2);
   lcd.print("Starting up");
   delay(1000);
@@ -128,14 +131,14 @@ void setup() {
   WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
  // digitalWrite(LED, HIGH);
  // Wire.begin(I2C_SDA, I2C_SCL);
-  delay(10);
+  delay(100);
+  
   //digitalWrite(LED, LOW);
   /*
   if (!bmp.begin()) {
     USE_SERIAL.println("No BMP085 sensor detected!");
     bmp085_present=false;
   }
- 
     dht.begin(); 
 }
  */
@@ -144,9 +147,6 @@ void closeConnection(HTTPClient * pClientToClose) {
   pClientToClose -> end();
   delay(SLEEP_DELAY);
 }
-
-
- 
 void loop() {
   if((WiFiMulti.run() == WL_CONNECTED)) {
 
@@ -238,9 +238,6 @@ void loop() {
         byte hu = (Humidity);
         String hum ;
         hum=String(hu);
-
-       
-
         // Winddirection
         int wnd = (WindDirection);
        
@@ -264,56 +261,34 @@ void loop() {
         //windS = String(wnds);
         String windS = String( printf("%02d", wnds));
         //Description
-        Serial.print(Airquality);
-        Serial.print(thelocationx);
-        Serial.print(thelocationy);
-        Serial.print(Message);
-        Serial.print(Satname);
-        Serial.print(Endaz);
-        Serial.println(Description);
-        Serial.println(windD);
         //checker
-        int t;
-        Serial.println(origincountry);
-        Serial.println(posx);
-        Serial.println(posy);
-        
-        Serial.println(now());
-
-        /*
-         
-        Serial.println(windS);
-        Serial.println(windD);
-        Serial.println(Pressure);
-        Serial.println(Humidity);
-        Serial.println(Temperature);
-        Serial.println(Comment);
-        Serial.println(SourceID);
-        Serial.println(Message);
-        Serial.print(unread);
-        */
+        d_time_string = ctime(&unixtimend);
+        delay(2000);
+        c_time_string = ctime(&unixtime);
+        Serial.println(c_time_string);
+        Serial.println(d_time_string);
         Serial.print(STATCY);     
-     
         int dat = (unread);
         String dis; 
         dis = String(dat);
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
-        
+        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
+        ///YM5KMS>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Mersin
         delay(3000);
         client.flush();
        // client.print("5B4ANU-12>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
-
-        //client.print("5B4ANU-7>APDR15,WIDE1-1:=3506.1 N/03321.5 E_299/003g005t067r000p000P000h74b10136L000");
         client.println(""); 
        // 35.1520595,33.3476924
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000"" The AirQuality index now is "+Airquality+"");
-        
+        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
+        delay(3000);
+        client.flush();
+        client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
+        delay(3000);
         while(count < 10){
         lcd.clear();
-        lcd.setCursor(0, 0);
+        lcd.setCursor(0, 0);    
         lcd.print("T:"+temp+"c  P:"+Pressure+"b");
         lcd.setCursor(0, 1);
         lcd.print("H:"+hum+"%  W:"+windD+""+(char)223+"");
@@ -337,6 +312,14 @@ void loop() {
         lcd.print("S:"+Startaz+""+(char)223+" E:"+Endaz+""+(char)223+"");
         delay(5000);
         lcd.clear();
+        lcd.setCursor(0, 0);
+        String startime =String(c_time_string);
+        lcd.print(""+startime+"");
+        lcd.setCursor(0, 1);
+        String endtime =String(d_time_string);
+        lcd.print(""+endtime+"");
+        delay(6000);
+        lcd.clear();
         lcd.print("Messages   "+dis+"");
         delay (2000);
         lcd.clear();
@@ -355,22 +338,16 @@ void loop() {
         }
      
         }
-       
         count++;
-       
         client.flush();
         Serial.flush();
-        }
-        
+        USE_SERIAL.flush(); 
+        } 
       //  digitalWrite(LED, LOW);
         http.end(); //Close connection
-        
-        
         delay(6000); //10 MIN DELAY 
-     //   digitalWrite(LED, HIGH);
     }
 }
-
 
 void getWeatherData(){   //client function to send/receive GET request data.
   if (client.connect(servername, 80))   
@@ -395,7 +372,6 @@ void getWeatherData(){   //client function to send/receive GET request data.
          char c = client.read();                     //gets byte from ethernet buffer
          result = result+c;
        }
-
 client.stop();                                      //stop client
 result.replace('[', ' ');
 result.replace(']', ' ');
@@ -416,7 +392,6 @@ int pressure = root["main"]["pressure"];
 byte windspeed = root["wind"]["speed"];
 byte windDirection = root["wind"] ["deg"];
 String description = root["weather"]["description"];
-
 Description = description;
 Temperature = temperature;
 Humidity = humidity;
@@ -434,10 +409,6 @@ void getAPRSdata(){   //client function to send/receive GET request data.
         client.println("GET /api/get?what=msg&dst=5B4ANU-13&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
     //     client.println("GET /api/get?name=5B4ANU-13&what=loc&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
         // client.println("GET /api/active/?limit=10&region=2&country=280 HTTP/1.0");
-         //client.println("GET /v2/top-headlines?sources=bbc-news&apiKey=09595a6764954900b3a241f586f76630 HTTP/1.1");
-        //  client.println("Host: api.aprs.fi");
-         
-      //    client.println("Host: hose.brandmeister.network");
           client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
           client.println("Connection: close");
           client.println();
@@ -461,17 +432,12 @@ if (!client.find(endOfHeaders)) {
          char d = client.read();                     //gets byte from ethernet buffer
          kaka = kaka+d;
        }
-       
-
 client.stop();                                      //stop client
-//kaka.replace('[', ' ');
-//kaka.replace(']', ' ');
 Serial.println(kaka);
 char jsonArray [kaka.length()+1];
 kaka.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[kaka.length()+1] = '\0';
 StaticJsonBuffer<2048>json_buf;
-//DynamicJsonBuffer  json_buf;
 JsonObject& parsed = json_buf.parseObject(jsonArray);
 
 
@@ -480,11 +446,9 @@ if (!parsed.success())
     Serial.println("parseObject() failed");
     return;
   }
-
 byte Found = parsed["found"];
 String sourceID = parsed["entries"][0]["srccall"];
 String message = parsed["entries"][0]["message"];
-
 unread = Found;
 Message = message;
 SourceID = sourceID;
@@ -519,8 +483,6 @@ if (!client.find(endOfHeaders)) {
          char e = client.read();                     //gets byte from ethernet buffer
          pisha = pisha+e;
        }
-       
-
 client.stop();                                      //stop client
 //pisha.replace('[', ' ');
 //pisha.replace(']', ' ');
@@ -531,14 +493,11 @@ jsonArray[pisha.length()+1] = '\0';
 StaticJsonBuffer<1500>json_buf;
 //DynamicJsonBuffer  json_buf;
 JsonObject& picked = json_buf.parseObject(jsonArray);
-
-
 if (!picked.success())
   {
     Serial.println("parseObject() failed 2");
     return;
   }
-
 byte Found = picked["states"];
 String Callsign = picked["states"][0][1];
 String Posy = picked["states"][0][5];
@@ -613,8 +572,6 @@ Nicpressure = nicpressure;
 Nichumid =humidity21;
 Airquality = aqi;
 thelocation = location;
-//thelocationx = getValue(location,',');
-//thelocationy = getValue(location,',');
 STATCY = Statusindex;
 }
 
@@ -654,7 +611,7 @@ Serial.println(louvin);
 char jsonArray [louvin.length()+1];
 louvin.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[louvin.length() + 1] = '\0';
-StaticJsonBuffer<1024>json_buf;
+StaticJsonBuffer<786>json_buf;
 //DynamicJsonBuffer json_buf;
 JsonObject &rootbeer = json_buf.parseObject(jsonArray);
 
@@ -662,22 +619,16 @@ if (!rootbeer.success())
   {
     Serial.println("parseObject() failed");
   }
-/*
-if (!root.success())
-  {
-    Serial.println("parseObject() failed");
-  }
-*/
 
 String satname = rootbeer["info"]["satname"];
 String startaz = rootbeer["passes"][0]["startAz"];
 String endaz = rootbeer["passes"][0]["endAz"];
-String startutc = rootbeer["passes"][0]["startUTC"];
-String endutc = rootbeer["passes"][0]["endUTC"];
+time_t startutc = rootbeer["passes"][0]["startUTC"];
+time_t endutc = rootbeer["passes"][0]["endUTC"];
 
 Startaz =startaz;
 Endaz = endaz;
-Startutc= startutc;
-Endutc = endutc;
 Satname = satname;
+unixtime = startutc;
+unixtimend = endutc;
 }

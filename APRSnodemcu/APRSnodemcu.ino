@@ -68,6 +68,11 @@ int WindDirection;
 byte Windspeed;
 String Description;
 //////////////////////////////////////////
+//FIRE API ////////
+char fireserver[]="192.168.10.170";   
+String firelong , firelat,fourin,pulin;
+
+//////////////////////////////////////////
 
 /*
 #define I2C_SCL 12      // Barometric Pressure Sensor (BMP085)
@@ -129,8 +134,8 @@ void setup() {
   USE_SERIAL.begin(115200); // SET BAUDRATE
   USE_SERIAL.flush();    
   delay(1000);
- // WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
-  WiFiMulti.addAP("CYTA_zPDx_2.4G", "QHxfr6GF"); // SSID PASSWORD
+  WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
+  //WiFiMulti.addAP("CYTA_zPDx_2.4G", "QHxfr6GF"); // SSID PASSWORD
  // digitalWrite(LED, HIGH);
  // Wire.begin(I2C_SDA, I2C_SCL);
   delay(100);
@@ -168,13 +173,16 @@ void loop() {
         delay(1000);
         getsatdata();
         delay(1000);
+        getfiredata();
+        delay(1000);
         if (!client.connect(host, port)) {
           
             
            return;
         }
  
-        client.println("user 5B4ANU pass 15540 vers ESP8266_SM 0.1 filter m/1");  // Insert Callsign and APRS PASSWORD
+       // Insert Callsign and APRS PASSWORD
+         client.println("user 5B4ANU pass 15540 vers ESP8266_SM 0.1 filter m/1");
         delay (250);
         //THIS SECTION IS IF YOU WANT TO USE SENSORS INSTEAD OF THE WEB API////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,13 +277,35 @@ void loop() {
         c_time_string = ctime(&unixtime);
         Serial.println(c_time_string);
         Serial.println(d_time_string);
-        Serial.print(STATCY);     
+        Serial.print(STATCY);  
+        Serial.print(firelat);
+        Serial.print(firelong);   
         int dat = (unread);
         String dis; 
         dis = String(dat);
+
+        //// fix lat // long
+        int fixedlat=0;
+         fixedlat = firelat.toInt();
+         fixedlat = fixedlat/100;
+         firelat = Serial.println(fixedlat,2);
+
+       int fixedlong=0;
+         fixedlat = firelong.toInt();
+         fixedlat = fixedlat/100;
+         firelong = Serial.println(fixedlat,2);
+
+    
+        client.flush();
+        // {"latitude": 35.11438, "longitude": 33.0088} 
+        // the last :  is the symbol
+        client.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"""E: FIRE FIRE FIRE");
+        delay(3000);
+        client.flush();
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
+       
         client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
         ///YM5KMS>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Mersin
         delay(3000);
@@ -288,6 +318,8 @@ void loop() {
         client.flush();
         client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
         delay(3000);
+        
+        
         while(count < 10){
         lcd.clear();
         lcd.setCursor(0, 0);    
@@ -633,4 +665,52 @@ Endaz = endaz;
 Satname = satname;
 unixtime = startutc;
 unixtimend = endutc;
+}
+
+void getfiredata(){   //client function to send/receive GET request data.
+  if (client.connect(fireserver, 8080))   
+          {                                         //starts client connection, checks for connection
+          client.println("GET /fire HTTP/1.1");
+          
+          client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
+          client.println("Connection: close");
+          client.println();     
+          } 
+  else {
+         Serial.println("connection failed");        //error message if no client connect
+         Serial.println();
+       }
+  while(client.connected() && !client.available())
+  delay(100);                                          //waits for data
+  char endOfHeaders[] = "\r\n\r\n";
+ client.setTimeout(10000);
+if (!client.find(endOfHeaders)) {
+  Serial.println(F("Invalid response"));
+
+    return;
+} 
+                                         //waits for data
+  while (client.connected() || client.available())    
+       {                                             //connected or data available
+         char x = client.read();                     //gets byte from ethernet buffer
+         fourin = fourin+x;
+       }
+client.stop();  //stop client
+fourin.replace('[', ' ');
+fourin.replace(']', ' ');
+Serial.println(fourin);
+char jsonArray [fourin.length()+1];
+fourin.toCharArray(jsonArray,sizeof(jsonArray));
+jsonArray[fourin.length() + 1] = '\0';
+StaticJsonBuffer<786>json_buf;
+//DynamicJsonBuffer json_buf;
+JsonObject &firestorm = json_buf.parseObject(jsonArray);
+if (!firestorm.success())
+  {
+    Serial.println("parseObject() failed");
+  }
+String firelat1 = firestorm["latitude"];
+String firelong1 = firestorm["longitude"];
+firelat = firelat1;
+firelong = firelong1;
 }

@@ -1,21 +1,16 @@
-# import csv
-# import json
-
-# csvfile = open('SUOMI_VIIRS_C2_Global_24h.csv', 'r')
-# jsonfile = open('viirs.json', 'w')
-
-
-
-
-# fieldnames = ("latitude","longitude","bright_ti4","scan","track","acq_date",
-#               "acq_time","satellite","condidence","version","bright","frp","daynight")
-# reader = csv.DictReader( csvfile, fieldnames)
-# for row in reader:
-#     json.dump(row, jsonfile)
-#     jsonfile.write('\n')
-
     
 import pandas as pd
+import wget
+import os
+
+url = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv"
+
+filePath = 'SUOMI_VIIRS_C2_Global_24h.csv';
+# As file at filePath is deleted now, so we should check if file exists or not not before deleting them
+if os.path.exists(filePath):
+    os.remove(filePath)
+
+wget.download(url, 'SUOMI_VIIRS_C2_Global_24h.csv')
 csv_file = pd.DataFrame(pd.read_csv("SUOMI_VIIRS_C2_Global_24h.csv", sep = ",", header = 0, 
                                     index_col = False,usecols= ['latitude', 'longitude']))
 

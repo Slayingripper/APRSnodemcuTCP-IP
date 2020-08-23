@@ -2,8 +2,9 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ArduinoJson.h>
+
 #include <ESP8266HTTPClient.h>
-//#include <WiFiClient.h>
+#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include "Wire.h"
 #include "LiquidCrystal.h"
@@ -128,7 +129,8 @@ void setup() {
   USE_SERIAL.begin(115200); // SET BAUDRATE
   USE_SERIAL.flush();    
   delay(1000);
-  WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
+ // WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
+  WiFiMulti.addAP("CYTA_zPDx_2.4G", "QHxfr6GF"); // SSID PASSWORD
  // digitalWrite(LED, HIGH);
  // Wire.begin(I2C_SDA, I2C_SCL);
   delay(100);

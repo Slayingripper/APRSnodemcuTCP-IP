@@ -5,7 +5,7 @@ import os
 
 url = "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv"
 
-filePath = 'SUOMI_VIIRS_C2_Global_24h.csv';
+filePath = 'SUOMI_VIIRS_C2_Global_24h.csv'
 # As file at filePath is deleted now, so we should check if file exists or not not before deleting them
 if os.path.exists(filePath):
     os.remove(filePath)

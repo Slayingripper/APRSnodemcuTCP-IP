@@ -69,7 +69,7 @@ byte Windspeed;
 String Description;
 //////////////////////////////////////////
 //FIRE API ////////
-char fireserver[]="192.168.10.170";   
+char fireserver[]="192.168.10.28";   
 String firelong , firelat,fourin,pulin;
 
 //////////////////////////////////////////
@@ -285,23 +285,32 @@ void loop() {
         dis = String(dat);
 
         //// fix lat // long
-        int fixedlat=0;
-         fixedlat = firelat.toInt();
-         fixedlat = fixedlat/100;
-         firelat = Serial.println(fixedlat,2);
-
-       int fixedlong=0;
-         fixedlat = firelong.toInt();
-         fixedlat = fixedlat/100;
-         firelong = Serial.println(fixedlat,2);
-
+         float fixedlat=0;
+         fixedlat = firelat.toFloat();
+         fixedlat = fixedlat*100;
+         Serial.println("\n");
+         Serial.println(fixedlat);
+         firelat = String(fixedlat);
+         Serial.println(firelat);  
+         
+         float fixedlong=0;
+         fixedlong = firelong.toFloat();
+         fixedlong = fixedlong * 100;
+         Serial.println("\n");
+         Serial.println(fixedlong);
+         firelong = String(fixedlong);
+         Serial.println(firelong); 
     
         client.flush();
         // {"latitude": 35.11438, "longitude": 33.0088} 
         // the last :  is the symbol
-        client.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"""E: FIRE FIRE FIRE");
+        if( fixedlong != 0){
+        client.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
+        
+        //Serial.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
         delay(3000);
         client.flush();
+        }
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi

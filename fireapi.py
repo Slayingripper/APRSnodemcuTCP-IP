@@ -13,4 +13,4 @@ def getFire():
 	#return jsonify(fire)
     return json.dumps(fire)
 if __name__ == '__main__':
-	app.run(port=8080,debug=True, host='192.168.10.170')
+	app.run(port=8080,debug=True, host='192.168.10.6')

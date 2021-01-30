@@ -30,7 +30,7 @@ def listen(ws):
             self.ws = None
             break
         if "type" in msg:
-			parsed = json.loads(msg)
+            parsed = json.loads(msg)
 			print(json.dumps(parsed, indent=4))
 			lon = parsed["data"]["lon"]
 			lat = parsed["data"]["lon"]

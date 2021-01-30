@@ -18,6 +18,13 @@ def myprocessing(message):
         info = data['data']['properties']
         info['action'] = data['action']
         logging.info('>>>> {action:7} event from {auth:7},T0:{time},Lat{lat},Lon{lon}, Mag:{mag}, Region: {flynn_region}'.format(**info))
+        mag = data['data']['properties']['mag']
+        lat = data["data"]["properties"]["lat"]
+        lon = data["data"]["properties"]["lon"]
+        time = data["data"]["properties"]["time"]
+        print("EDULEPSEN")
+        print(lat,lon,mag)
+        callback(lat,lon,mag)
     except Exception:
         logging.exception("Unable to parse json message")
 
@@ -29,14 +36,6 @@ def listen(ws):
             logging.info("close")
             self.ws = None
             break
-        if "type" in msg:
-            parsed = json.loads(msg)
-			print(json.dumps(parsed, indent=4))
-			lon = parsed["data"]["lon"]
-			lat = parsed["data"]["lon"]
-			magnitude = parsed["data"]["mag"]
-            print("EDULEPSEN")
-            print(lat,lon,magnitude)
             
         myprocessing(msg)
         
@@ -54,20 +53,23 @@ def launch_client():
         listen(ws)
         
 
-def callback():
+def callback(lat,lon,mag):
     #  print(packet)
     # # a valid passcode for the callsign is required in order to send
     AIS = aprslib.IS("5B4ANU", passwd="15540", host = "asia.aprs2.net" ,port=14580)
 
     AIS.connect()
     # # send a single status message
-    AIS.sendall("5B4ANU-12>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: EARTHQUAKE MAGNITUDE"++"")
+    AIS.sendall("5B4ANU-12>APRS15,WIDE1-1:>""3506.19N/""03321.63E")
+
+    #AIS.sendall("5B4ANU-12>APRS15,WIDE1-1:@""3506.19N/""03321.63E""&""Magnitude:"+str(mag)+",Location:Latitude"+str(lat)+",Longitude"+str(lon)+",""Testing Phase")
+   # AIS.sendall("5B4ANU-12>APDR15,WIDE1-1:="+lat+"N/""0""+lon+"E:"""EARTHQUAKE MAGNITUDE:"+mag+"")
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     ioloop = IOLoop.instance()
     launch_client()
-   # callback()	
+   	
     try:
         ioloop.start()
     except KeyboardInterrupt:

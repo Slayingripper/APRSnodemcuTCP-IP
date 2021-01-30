@@ -1,8 +1,7 @@
-#include <TimeLib.h>
+#include <Time.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ArduinoJson.h>
-
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
@@ -44,7 +43,7 @@ String SourceID;
 ///////////////////////////////////////////////////////
 ///////////////SATELITE///////////////////////////////
 //https://www.n2yo.com/rest/v1/satellite/radiopasses/25544/35.0191/33.74057/0/2/40/&apiKey=DWNZB6-Q6B5GA-M7ND55-4ISG
-char satteliteserver[] = "www.n2yo.com";
+char satteliteserver[] = "api.n2yo.com";
 String Startaz,Endaz,Satname;
 time_t unixtime,unixtimend;
 /////planes///////
@@ -168,7 +167,7 @@ void loop() {
         delay(1000);
         getAPRSdata();
         delay(1000);
-        airindex();
+       // airindex();
         //getplaneinfo();
         delay(1000);
         getsatdata();
@@ -272,6 +271,7 @@ void loop() {
         String windS = String( printf("%02d", wnds));
         //Description
         //checker
+        
         d_time_string = ctime(&unixtimend);
         delay(2000);
         c_time_string = ctime(&unixtime);
@@ -322,7 +322,7 @@ void loop() {
        // client.print("5B4ANU-12>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         client.println(""); 
        // 35.1520595,33.3476924
-        client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
+    //    client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
         delay(3000);
         client.flush();
         client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
@@ -591,7 +591,7 @@ Serial.println(pisha);
 char jsonArray [pisha.length()+1];
 pisha.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[pisha.length()+1] = '\0';
-StaticJsonBuffer<1500>json_buf;
+StaticJsonBuffer<2048>json_buf;
 //DynamicJsonBuffer  json_buf;
 JsonObject& picked = json_buf.parseObject(jsonArray);
 

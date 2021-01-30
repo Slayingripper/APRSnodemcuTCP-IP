@@ -30,8 +30,13 @@ def listen(ws):
             self.ws = None
             break
         if "type" in msg:
+			parsed = json.loads(msg)
+			print(json.dumps(parsed, indent=4))
+			lon = parsed["data"]["lon"]
+			lat = parsed["data"]["lon"]
+			magnitude = parsed["data"]["mag"]
             print("EDULEPSEN")
-            print(f"msg[0]['data']['lon']")
+            print(lat,lon,magnitude)
             
         myprocessing(msg)
         

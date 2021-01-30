@@ -31,7 +31,7 @@ def listen(ws):
             break
         if "type" in msg:
             print("EDULEPSEN")
-            print(msg[0]['data']['lon'])
+            print(f"msg[0]['data']['lon']")
             
         myprocessing(msg)
         
@@ -56,7 +56,7 @@ def callback():
 
     AIS.connect()
     # # send a single status message
-    AIS.sendall("5B4ANU>APRS,TCPIP*:>" "Earthquake found")
+    AIS.sendall("5B4ANU-12>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: EARTHQUAKE MAGNITUDE"++"")
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)

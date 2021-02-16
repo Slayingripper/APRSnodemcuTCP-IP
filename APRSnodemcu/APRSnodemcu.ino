@@ -6,9 +6,10 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include "Wire.h"
-#include "LiquidCrystal.h"
-const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
-LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
+#include "lcdanimation.h"
+//#include "LiquidCrystal.h"
+// const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
+// LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
 int count = 0 ;
 char* c_time_string;
 char* d_time_string;
@@ -24,7 +25,7 @@ ESP8266WiFiMulti WiFiMulti;
 #define USE_SERIAL Serial
 #define SLEEP_DELAY 3000
 char airindexs[] = "api.waqi.info";
-String STATCY,Airquality,thelocationx,thelocationy,thelocation,Nichumid,Nicwind,Nicpressure,Nictemp;
+String Airquality,Nichumid,Nicwind,Nicpressure,Nictemp;
 //#define ONE_WIRE_BUS 2  // DS18B20 pin 2 по nodemcu 0.9 D4
 //OneWire oneWire(ONE_WIRE_BUS);
 //DallasTemperature DS18B20(&oneWire);
@@ -56,12 +57,16 @@ String callsign,posx,posy,origincountry;
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
 String result,kaka,pisha,louvin,Description;
-byte length,thislength,Temprature,Humidity,Windspeed;
+byte length,thislength,Temperature,Humidity,Windspeed;
 int Pressure,WindDirection;
 //////////////////////////////////////////
+/////////Solar Panels/////////////////////
+char solarpanel[] = "192.168.10.181";
+String Realtime,Daily;
+//////////////////////////////////////////
 //FIRE API ////////
-char fireserver[]="192.168.10.28";   
-String firelong , firelat,fourin,pulin;
+char fireserver[]="192.168.10.6";   
+String firelong,firelat,fourin,pulin;
 //////////////////////////////////////////
 /*
 #define I2C_SCL 12      // Barometric Pressure Sensor (BMP085)
@@ -142,28 +147,33 @@ void loop() {
 
     HTTPClient http;
    
- 
+
         const uint16_t port = 14580; // APRS PORT
         const char * host = "asia.aprs2.net"; // APRS SERVER
         WiFiClient client; //
+        lcd.clear();
+        draw_progressbar(0);
         delay(1000); //  5 second delay 
-        getWeatherData();
+ //       airindex();
+        getsolarpower();
+       draw_progressbar(20);
         delay(1000);
         getAPRSdata();
+        draw_progressbar(40);
         delay(1000);
-       // airindex();
+        getWeatherData();
+        draw_progressbar(60);
         //getplaneinfo();
         delay(1000);
         getsatdata();
+       draw_progressbar(80);
         delay(1000);
         getfiredata();
+        draw_progressbar(100);
         delay(1000);
-        if (!client.connect(host, port)) {
-          
-            
+        if (!client.connect(host, port)) {     
            return;
         }
- 
        // Insert Callsign and APRS PASSWORD
          client.println("user 5B4ANU pass 15540 vers ESP8266_SM 0.1 filter m/1");
         delay (250);
@@ -259,38 +269,23 @@ void loop() {
         d_time_string = ctime(&unixtimend);
         delay(2000);
         c_time_string = ctime(&unixtime);
-        Serial.println(c_time_string);
-        Serial.println(d_time_string);
-        Serial.print(STATCY);  
-        Serial.print(firelat);
-        Serial.print(firelong);   
         int dat = (unread);
         String dis; 
         dis = String(dat);
-
         //// fix lat // long
          float fixedlat=0;
          fixedlat = firelat.toFloat();
          fixedlat = fixedlat*100;
-         Serial.println("\n");
-         Serial.println(fixedlat);
-         firelat = String(fixedlat);
-         Serial.println(firelat);  
-         
+         firelat = String(fixedlat);    
          float fixedlong=0;
          fixedlong = firelong.toFloat();
          fixedlong = fixedlong * 100;
-         Serial.println("\n");
-         Serial.println(fixedlong);
-         firelong = String(fixedlong);
-         Serial.println(firelong); 
-    
+         firelong = String(fixedlong);  
         client.flush();
         // {"latitude": 35.11438, "longitude": 33.0088} 
         // the last :  is the symbol
         if( fixedlong != 0){
         client.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
-        
         //Serial.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
         delay(3000);
         client.flush();
@@ -298,7 +293,6 @@ void loop() {
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-       
         client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
         ///YM5KMS>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Mersin
         delay(3000);
@@ -306,7 +300,7 @@ void loop() {
        // client.print("5B4ANU-12>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         client.println(""); 
        // 35.1520595,33.3476924
-    //    client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
+       // client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
         delay(3000);
         client.flush();
         client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
@@ -321,18 +315,44 @@ void loop() {
         lcd.print("H:"+hum+"%  W:"+windD+""+(char)223+"");
         delay (5000);
         lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Nicosia quality");
-         lcd.setCursor(0, 1);
-         lcd.print("Index:"+Airquality+"");
-         delay(5000);
-         lcd.clear();
-         lcd.setCursor(0, 0);
-         lcd.print("W:"+Nicwind+"m/s""  T:"+Nictemp+"c");
-         lcd.setCursor(0, 1);
-         lcd.print("P:"+Nicpressure+"b""   H:"+Nichumid+"%");
+        if( Airquality != 0){
+          lcd.setCursor(0, 0);
+          lcd.print("Nicosia quality");
+          lcd.setCursor(0, 1);
+          lcd.print("Index:"+Airquality+"");
+          delay(5000);
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("W:"+Nicwind+"m/s""  T:"+Nictemp+"c");
+          lcd.setCursor(0, 1);
+          lcd.print("P:"+Nicpressure+"b""   H:"+Nichumid+"%");
         delay(5000);
          lcd.clear();
+        }
+        else {
+          lcd.setCursor(0, 0);
+          lcd.print("Air Quality API");
+          lcd.setCursor(0, 1);
+          lcd.print("Is Down");
+          delay(5000);
+          lcd.clear();
+        }
+        if(Realtime and Daily != 0){
+        lcd.setCursor(0, 0);
+        lcd.print("Power Now: "+Realtime+"W");
+        lcd.setCursor(0, 1);
+        lcd.print("Total: "+Daily+"W");
+        delay(5000);
+        lcd.clear();
+        }
+        else {
+        lcd.setCursor(0, 0);
+        lcd.print("Inverter is");
+        lcd.setCursor(0, 1);
+        lcd.print("OFF");
+        delay(5000);
+        lcd.clear();
+        }
         lcd.setCursor(0, 0);
         lcd.print(""+Satname+"");
         lcd.setCursor(0, 1);
@@ -366,9 +386,9 @@ void loop() {
      
         }
         count++;
-        client.flush();
-        Serial.flush();
-        USE_SERIAL.flush(); 
+     //   client.flush();
+    //    Serial.flush();
+       // USE_SERIAL.flush(); 
         } 
       //  digitalWrite(LED, LOW);
         http.end(); //Close connection
@@ -433,15 +453,13 @@ void getAPRSdata(){   //client function to send/receive GET request data.
   if (client.connect(aprsserver, 80 ))   
           {      
             //starts client connection, checks for connection
-        client.println("GET /api/get?what=msg&dst=5B4ANU-13&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
-    //     client.println("GET /api/get?name=5B4ANU-13&what=loc&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
-        // client.println("GET /api/active/?limit=10&region=2&country=280 HTTP/1.0");
+          client.println("GET /api/get?what=msg&dst=5B4ANU-13&apikey=117511.y5T2lut5UFcsj0PY&format=jason HTTP/1.0");
           client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
           client.println("Connection: close");
           client.println();
           } 
   else {
-         Serial.println("connection failed");        //error message if no client connect
+          Serial.println("connection failed");        //error message if no client connect
           Serial.println();
        }
 
@@ -466,8 +484,6 @@ kaka.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[kaka.length()+1] = '\0';
 StaticJsonBuffer<2048>json_buf;
 JsonObject& parsed = json_buf.parseObject(jsonArray);
-
-
 if (!parsed.success())
   {
     Serial.println("parseObject() failed");
@@ -479,14 +495,12 @@ String message = parsed["entries"][0]["message"];
 unread = Found;
 Message = message;
 SourceID = sourceID;
-
 }
-void getplaneinfo(){   //client function to send/receive GET request data.
+void getsolarpower(){   //client function to send/receive GET request data.
 
-  if (client.connect(planeserver, 80 ))   {
+  if (client.connect(solarpanel, 80 ))   {
 
-          client.println("GET /api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455 HTTP/1.1");
-          client.println("Host: opensky-network.org");
+          client.println("GET /solar_api/v1/GetPowerFlowRealtimeData.fcgi HTTP/1.0");
           client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
           client.println("Connection: close");
           client.println();
@@ -511,8 +525,6 @@ if (!client.find(endOfHeaders)) {
          pisha = pisha+e;
        }
 client.stop();                                      //stop client
-//pisha.replace('[', ' ');
-//pisha.replace(']', ' ');
 Serial.println(pisha);
 char jsonArray [pisha.length()+1];
 pisha.toCharArray(jsonArray,sizeof(jsonArray));
@@ -525,22 +537,16 @@ if (!picked.success())
     Serial.println("parseObject() failed 2");
     return;
   }
-byte Found = picked["states"];
-String Callsign = picked["states"][0][1];
-String Posy = picked["states"][0][5];
-String Posx = picked["states"][0][6];
-String Origincountry = picked["states"][0][2];
 
-callsign = Callsign;
-posy = Posy;
-posx = Posx;
-origincountry = Origincountry;
+String powernow = picked["Body"]["Data"]["Inverters"]["1"]["P"];
+String dailypower = picked["Body"]["Data"]["Inverters"]["1"]["E_Day"];
+Realtime = powernow;
+Daily = dailypower;
 }
 
 void airindex(){   //client function to send/receive GET request data.
 
   if (client.connect(airindexs, 80 ))   {
-
           client.println("GET /feed/Nicosia/?token=65174f79ef3f8ffe9d5af54f4c1ece468a59b6f0 HTTP/1.0");
           client.println("Host: api.waqi.info");
           client.println("User-Agent: Mozilla/5.0 (compatible; Rigor/1.0.0; http://rigor.com)");
@@ -548,7 +554,7 @@ void airindex(){   //client function to send/receive GET request data.
           client.println();
           } 
   else {
-         Serial.println("connection failed");        //error message if no client connect
+          Serial.println("connection failed");        //error message if no client connect
           Serial.println();
        }
 
@@ -558,50 +564,43 @@ void airindex(){   //client function to send/receive GET request data.
  client.setTimeout(10000);
 if (!client.find(endOfHeaders)) {
   Serial.println(F("Invalid response"));
-
     return;
 }
   while (client.connected() || client.available())    
        {                                             //connected or data available
          char e = client.read();                     //gets byte from ethernet buffer
          pisha = pisha+e;
-       }
-       
-
+       }      
 client.stop();                                      //stop client
-//pisha.replace('[', ' ');
-//pisha.replace(']', ' ');
 Serial.println(pisha);
 char jsonArray [pisha.length()+1];
+Serial.print("number 1");
 pisha.toCharArray(jsonArray,sizeof(jsonArray));
+Serial.print("number 2");
 jsonArray[pisha.length()+1] = '\0';
+Serial.print("number 3");
 StaticJsonBuffer<2048>json_buf;
-//DynamicJsonBuffer  json_buf;
+Serial.print("number 4");
 JsonObject& picked = json_buf.parseObject(jsonArray);
-
-
+Serial.print("number 5");
 if (!picked.success())
   {
     Serial.println("parseObject() failed 2");
     return;
   }
 //35.1520595,33.3476924
-String Statusindex = picked["data"]["city"]["name"];
 String aqi = picked["data"]["aqi"];
-String location = picked["data"]["city"]["geo"];
 String humidity21 = picked["data"]["iaqi"]["h"]["v"];
 String nicpressure = picked["data"]["iaqi"]["p"]["v"];
 String nicwind = picked["data"]["iaqi"]["w"]["v"];
 String nictemp = picked["data"]["iaqi"]["t"]["v"];
-Nicwind = nicwind;
-Nictemp = nictemp;
-Nicpressure = nicpressure;
-Nichumid =humidity21;
 Airquality = aqi;
-thelocation = location;
-STATCY = Statusindex;
-}
+Nichumid =humidity21;
+Nicpressure = nicpressure;
+Nictemp = nictemp;
+Nicwind = nicwind;
 
+}
 void getsatdata(){   //client function to send/receive GET request data.
   if (client.connect(satteliteserver, 80))   
           {                                         //starts client connection, checks for connection
@@ -632,14 +631,11 @@ if (!client.find(endOfHeaders)) {
        }
 
 client.stop();                                      //stop client
-//louvin.replace('[', ' ');
-//louvin.replace(']', ' ');
 Serial.println(louvin);
 char jsonArray [louvin.length()+1];
 louvin.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[louvin.length() + 1] = '\0';
 StaticJsonBuffer<786>json_buf;
-//DynamicJsonBuffer json_buf;
 JsonObject &rootbeer = json_buf.parseObject(jsonArray);
 
 if (!rootbeer.success())
@@ -659,7 +655,6 @@ Satname = satname;
 unixtime = startutc;
 unixtimend = endutc;
 }
-
 void getfiredata(){   //client function to send/receive GET request data.
   if (client.connect(fireserver, 8080))   
           {                                         //starts client connection, checks for connection
@@ -696,7 +691,6 @@ char jsonArray [fourin.length()+1];
 fourin.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[fourin.length() + 1] = '\0';
 StaticJsonBuffer<786>json_buf;
-//DynamicJsonBuffer json_buf;
 JsonObject &firestorm = json_buf.parseObject(jsonArray);
 if (!firestorm.success())
   {

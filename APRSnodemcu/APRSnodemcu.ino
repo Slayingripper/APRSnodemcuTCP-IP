@@ -36,10 +36,8 @@ String APIKEY = "3e4c703c58358f810723b382adf2195c";
 String Callsign = "5B4ANU-13";
 String APIaprs = "117511.y5T2lut5UFcsj0PY";
 char aprsserver[] = "api.aprs.fi";
-String Message;
+String Message,SourceID,Comment;
 float unread;
-String Comment ;
-String SourceID;
 ///////////////////////////////////////////////////////
 ///////////////SATELITE///////////////////////////////
 //https://www.n2yo.com/rest/v1/satellite/radiopasses/25544/35.0191/33.74057/0/2/40/&apiKey=DWNZB6-Q6B5GA-M7ND55-4ISG
@@ -57,38 +55,24 @@ String callsign,posx,posy,origincountry;
 ///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
-String result,kaka,pisha,louvin;
-byte length;
-byte thislength;
-byte Temperature;
-byte Humidity;
-int Pressure;
-int WindDirection;
-byte Windspeed;
-String Description;
+String result,kaka,pisha,louvin,Description;
+byte length,thislength,Temprature,Humidity,Windspeed;
+int Pressure,WindDirection;
 //////////////////////////////////////////
 //FIRE API ////////
 char fireserver[]="192.168.10.28";   
 String firelong , firelat,fourin,pulin;
-
 //////////////////////////////////////////
-
 /*
 #define I2C_SCL 12      // Barometric Pressure Sensor (BMP085)
 #define I2C_SDA 13      // Barometric Pressure Sensor (BMP085)
 Adafruit_BMP085 bmp;
- 
 #define DHTPIN 4 
 #define DHTTYPE DHT22  
 //#define DHTTYPE DHT11
- 
-
-
 DHT dht(DHTPIN, DHTTYPE);
-
 float dst,bt,bp,ba;
 bool bmp085_present=true;
- 
 char * skipControlChars(char * sLine) {
     char * startFrom = sLine;
   

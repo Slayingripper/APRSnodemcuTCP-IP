@@ -1,5 +1,5 @@
 #include <Time.h>
-#include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ArduinoJson.h>
 #include <ESP8266HTTPClient.h>
@@ -7,6 +7,7 @@
 #include <WiFiClientSecure.h>
 #include "Wire.h"
 #include "lcdanimation.h"
+#include "webserver.h"
 //#include "LiquidCrystal.h"
 // const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 // LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
@@ -126,6 +127,7 @@ void setup() {
   //WiFiMulti.addAP("CYTA_zPDx_2.4G", "QHxfr6GF"); // SSID PASSWORD
  // digitalWrite(LED, HIGH);
  // Wire.begin(I2C_SDA, I2C_SCL);
+ 
   delay(100);
   
   //digitalWrite(LED, LOW);
@@ -305,8 +307,6 @@ void loop() {
         client.flush();
         client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
         delay(3000);
-        
-        
         while(count < 10){
         lcd.clear();
         lcd.setCursor(0, 0);    

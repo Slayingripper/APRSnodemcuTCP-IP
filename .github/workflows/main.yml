@@ -8,7 +8,7 @@ on:
   push:
     branches: [ master ]
     paths:
-    - 'APRSnodemcuTCP-IP/APRSnodemcu/'
+    - 'APRSnodemcu/'
   pull_request:
     branches: [ master ]
   

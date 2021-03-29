@@ -296,6 +296,13 @@ void loop() {
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
         client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
+        lcd.clear();
+        lcd.setCursor(0, 0);    
+        lcd.print("Sending");
+        lcd.setCursor(0, 1);
+        lcd.print("Packet");
+        delay (5000);
+        
         ///YM5KMS>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Mersin
         delay(3000);
         client.flush();
@@ -305,8 +312,13 @@ void loop() {
        // client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
         delay(3000);
         client.flush();
-        client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Nicosia");
+        client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN1LOCAL:Welcome to Nicosia");
         delay(3000);
+        client.flush();
+      //  client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Happy world Scout Day 2021");
+        
+        delay(3000);
+        client.flush();
         while(count < 10){
         lcd.clear();
         lcd.setCursor(0, 0);    

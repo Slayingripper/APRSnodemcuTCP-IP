@@ -1,4 +1,4 @@
-#include <Time.h>
+
 //#include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ArduinoJson.h>
@@ -6,8 +6,9 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include "Wire.h"
-#include "lcdanimation.h"
-#include "webserver.h"
+#include config.h
+//#include "lcdanimation.h"
+//#include <Time.h>
 //#include "LiquidCrystal.h"
 // const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 // LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
@@ -20,7 +21,7 @@ char* d_time_string;
 //#include <Adafruit_BMP085.h>
 //#include <DHT.h>
 ///////////////////////////////////////////////////
-#include <OneWire.h>
+//#include <OneWire.h>
 //const int LED = D0;
 ESP8266WiFiMulti WiFiMulti;
 #define USE_SERIAL Serial
@@ -32,12 +33,12 @@ String Airquality,Nichumid,Nicwind,Nicpressure,Nictemp;
 //DallasTemperature DS18B20(&oneWire);
 //////////////////////////////////////////
 // set location and API key for weather
-String CityID = "146268";
-String APIKEY = "3e4c703c58358f810723b382adf2195c";
+String CityID = City_ID;
+String APIKEY = API_KEY;
 //Set Callsign and APIkey APRS/////
-String Callsign = "5B4ANU-13";
-String APIaprs = "117511.y5T2lut5UFcsj0PY";
-char aprsserver[] = "api.aprs.fi";
+String Callsign = API_APRS_CALLSIGN;
+String APIaprs = API_APRS;
+char aprsserver[] = API_APRS_HOST;
 String Message,SourceID,Comment;
 float unread;
 ///////////////////////////////////////////////////////
@@ -50,11 +51,6 @@ time_t unixtime,unixtimend;
 ///https://opensky-network.org/api/states/all?lamin=34.388779&lomin=31.772461&lamax=35.906849&lomax=34.991455
 char planeserver[]= "opensky-network.org";
 String callsign,posx,posy,origincountry;
-/////////////DMR//////////////////////////////////////
-//const char DMRAPI = "Yc$hW60YhjAZi.r1MnynE@ee0CSkqPPl.MCVTDR8Wo4cnwd6UMuvLIJMiz3IlS1jCEbte@B7oGjM9xT0gkw@0dLjMO.4E0odEzGTzf$YVhH1Px23Sy2TMO9vz8Ab8YpN";
-//char dmrserver[] = "hose.brandmeister.network";
-//char newsserver[] = "newsapi.org";
-///////////////////////////////////
 WiFiClient client;
 char servername[]="api.openweathermap.org";              // remote server we will connect to
 String result,kaka,pisha,louvin,Description;
@@ -62,11 +58,11 @@ byte length,thislength,Temperature,Humidity,Windspeed;
 int Pressure,WindDirection;
 //////////////////////////////////////////
 /////////Solar Panels/////////////////////
-char solarpanel[] = "192.168.10.181";
+char solarpanel[] = Solar_Panel_IP;
 String Realtime,Daily;
 //////////////////////////////////////////
 //FIRE API ////////
-char fireserver[]="192.168.10.6";   
+char fireserver[]= Fireserver_IP;   
 String firelong,firelat,fourin,pulin;
 //////////////////////////////////////////
 /*
@@ -123,11 +119,7 @@ void setup() {
   USE_SERIAL.begin(115200); // SET BAUDRATE
   USE_SERIAL.flush();    
   delay(1000);
-  WiFiMulti.addAP("Airbus Home Private", "costas46"); // SSID PASSWORD
-  //WiFiMulti.addAP("CYTA_zPDx_2.4G", "QHxfr6GF"); // SSID PASSWORD
- // digitalWrite(LED, HIGH);
- // Wire.begin(I2C_SDA, I2C_SCL);
- 
+  WiFiMulti.addAP(WIFI_SSID, WIFI_PASSWORD); // SSID PASSWORD 
   delay(100);
   
   //digitalWrite(LED, LOW);
@@ -177,7 +169,7 @@ void loop() {
            return;
         }
        // Insert Callsign and APRS PASSWORD
-         client.println("user 5B4ANU pass 15540 vers ESP8266_SM 0.1 filter m/1");
+         client.println("user "API_APRS_CALLSIGN" pass "API_APRS_PASSCODE" vers ESP8266_SM 0.1 filter m/1");
         delay (250);
         //THIS SECTION IS IF YOU WANT TO USE SENSORS INSTEAD OF THE WEB API////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -287,36 +279,26 @@ void loop() {
         // {"latitude": 35.11438, "longitude": 33.0088} 
         // the last :  is the symbol
         if( fixedlong != 0){
-        client.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
-        //Serial.println("5B4ANU-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
+        client.println(""API_APRS_CALLSIGN"-10>APDR15,WIDE1-1:="+firelat+"N/""0"""+firelong+"E: FIRE FIRE FIRE");
         delay(3000);
         client.flush();
         }
         //Raw packet that gets sent
         //THE ZEROS ARE WHERE THE DATA GOES
         //winderi
-        client.print("5B4ANU-13>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
+        client.print(""API_APRS_CALLSIGN"-13>APDR15,WIDE1-1:="LATITUDE_" N/"LONGITUDE_" E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+"");
         lcd.clear();
         lcd.setCursor(0, 0);    
         lcd.print("Sending");
         lcd.setCursor(0, 1);
         lcd.print("Packet");
         delay (5000);
-        
-        ///YM5KMS>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Welcome to Mersin
-        delay(3000);
         client.flush();
-       // client.print("5B4ANU-12>APDR15,WIDE1-1:=3506.1 N/03321.5 E_"+windD+"/00"+windS+"g000t"+Temperature+"r000p000P000h"+Humidity+"b"+Pressure+"1L000""The weather today will be "+Description+",RV58,RV48,2802 DMR");
         client.println(""); 
        // 35.1520595,33.3476924
-       // client.println("5B4ANU-7>APDR15,TCPIP*,qAC,T2ITALY:=3510.10N/03320.50E_"+windD+"/00"+Nicwind+"g000t"+Nictemp+"r000p000P000h"+Nichumid+"b"+Nicpressure+"1L000""The AirQuality index now is: "+Airquality+"");
         delay(3000);
         client.flush();
-        client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN1LOCAL:Welcome to Nicosia");
-        delay(3000);
-        client.flush();
-      //  client.println("5B4ANU>BEACON,TCPIP*,qAC,T2FINLAND::BLN3LOCAL:Happy world Scout Day 2021");
-        
+        client.println(""API_APRS_CALLSIGN">BEACON,TCPIP*,qAC,T2FINLAND::BLN1LOCAL:"BB_COMMENT_"");
         delay(3000);
         client.flush();
         while(count < 10){

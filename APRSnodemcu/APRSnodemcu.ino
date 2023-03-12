@@ -6,10 +6,10 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include "Wire.h"
-#include config.h
+#include "config.h"
 //#include "lcdanimation.h"
 //#include <Time.h>
-//#include "LiquidCrystal.h"
+#include <LiquidCrystal.h>
 // const int RS = D2, EN = D3, d4 = D5, d5 = D6, d6 = D7, d7 = D8;
 // LiquidCrystal lcd(RS, EN, d4, d5, d6, d7);
 int count = 0 ;
@@ -398,8 +398,6 @@ void getWeatherData(){   //client function to send/receive GET request data.
           client.println("User-Agent: self.user_agent");
           client.println("Connection: close");
           client.println();
-          
-         
           } 
   else {
          Serial.println("connection failed");        //error message if no client connect
@@ -414,15 +412,19 @@ void getWeatherData(){   //client function to send/receive GET request data.
          result = result+c;
        }
 client.stop();                                      //stop client
+if (result.isEmpty()) {
+    Serial.println("Error: empty response.");
+    return;
+  }
 result.replace('[', ' ');
 result.replace(']', ' ');
 Serial.println(result);
 char jsonArray [result.length()+1];
 result.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[result.length() + 1] = '\0';
-StaticJsonBuffer<768>json_buf;
+StaticJsonDocument<768>json_buf;
 //DynamicJsonBuffer json_buf;
-JsonObject &root = json_buf.parseObject(jsonArray);
+JsonObject root = json_buf.parseObject(jsonArray);
 if (!root.success())
   {
     Serial.println("parseObject() failed");
@@ -439,7 +441,6 @@ Humidity = humidity;
 Pressure = pressure;
 WindDirection=windDirection;
 Windspeed = windspeed;
-
 }
 
 void getAPRSdata(){   //client function to send/receive GET request data.
@@ -476,8 +477,8 @@ Serial.println(kaka);
 char jsonArray [kaka.length()+1];
 kaka.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[kaka.length()+1] = '\0';
-StaticJsonBuffer<2048>json_buf;
-JsonObject& parsed = json_buf.parseObject(jsonArray);
+StaticJsonDocument<2048>json_buf;
+JsonObject parsed = json_buf.parseObject(jsonArray);
 if (!parsed.success())
   {
     Serial.println("parseObject() failed");
@@ -523,9 +524,9 @@ Serial.println(pisha);
 char jsonArray [pisha.length()+1];
 pisha.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[pisha.length()+1] = '\0';
-StaticJsonBuffer<1500>json_buf;
+StaticJsonDocument<1500>json_buf;
 //DynamicJsonBuffer  json_buf;
-JsonObject& picked = json_buf.parseObject(jsonArray);
+JsonObject picked = json_buf.parseObject(jsonArray);
 if (!picked.success())
   {
     Serial.println("parseObject() failed 2");
@@ -573,9 +574,9 @@ pisha.toCharArray(jsonArray,sizeof(jsonArray));
 Serial.print("number 2");
 jsonArray[pisha.length()+1] = '\0';
 Serial.print("number 3");
-StaticJsonBuffer<2048>json_buf;
+StaticJsonDocument<2048>json_buf;
 Serial.print("number 4");
-JsonObject& picked = json_buf.parseObject(jsonArray);
+JsonObject picked = json_buf.parseObject(jsonArray);
 Serial.print("number 5");
 if (!picked.success())
   {
@@ -629,7 +630,7 @@ Serial.println(louvin);
 char jsonArray [louvin.length()+1];
 louvin.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[louvin.length() + 1] = '\0';
-StaticJsonBuffer<786>json_buf;
+StaticJsonDocument<786>json_buf;
 JsonObject &rootbeer = json_buf.parseObject(jsonArray);
 
 if (!rootbeer.success())
@@ -684,7 +685,7 @@ Serial.println(fourin);
 char jsonArray [fourin.length()+1];
 fourin.toCharArray(jsonArray,sizeof(jsonArray));
 jsonArray[fourin.length() + 1] = '\0';
-StaticJsonBuffer<786>json_buf;
+StaticJsonDocument<786>json_buf;
 JsonObject &firestorm = json_buf.parseObject(jsonArray);
 if (!firestorm.success())
   {
